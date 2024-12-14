@@ -15,6 +15,10 @@ export default function RootLayout() {
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
+        name="privacy"
+        options={{ presentation: "modal", title: "Privacy Policy" }}
+      />
+      <Stack.Screen
         name="register"
         options={{
           title: "Create Account",
