@@ -1,6 +1,6 @@
 import {
   ActivityIndicator,
-  Image,
+  Alert,
   KeyboardAvoidingView,
   StyleSheet,
   Text,
@@ -13,18 +13,21 @@ import { COLORS } from "@/utils/colors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState } from "react";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
+import { useAuth } from "@/context/AuthContext";
 
 const schema = z.object({
+  name: z.string().optional(),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(6, "Password must be at least 6 characters").max(32),
 });
 
 type FormData = z.infer<typeof schema>;
 
-export default function Index() {
+const Page = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { onRegister } = useAuth();
 
   const {
     control,
@@ -34,13 +37,21 @@ export default function Index() {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      name: "Test",
       email: "aaa@aaa.com",
       password: "123456",
     },
   });
 
-  const onSubmit = (data: any) => {
-    console.log("Hello");
+  const onSubmit = async (data: any) => {
+    setLoading(true);
+    const result = await onRegister!(data.email, data.password, data.name);
+    if (result && result.error) {
+      Alert.alert("Error", result.msg);
+    } else {
+      router.back();
+    }
+    setLoading(false);
   };
 
   return (
@@ -48,6 +59,22 @@ export default function Index() {
       <KeyboardAvoidingView
         behavior="padding"
         style={{ flex: 1, justifyContent: "center" }}>
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View style={styles.inputContainer}>
+              <TextInput
+                placeholder="Name (optional)"
+                placeholderTextColor={COLORS.placeholder}
+                style={styles.input}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                value={value}
+              />
+            </View>
+          )}
+        />
         <Controller
           control={control}
           name="email"
@@ -95,18 +122,8 @@ export default function Index() {
             !errors.email && !errors.password ? {} : styles.buttonDisabled,
           ]}
           disabled={!!errors.email || !!errors.password}>
-          <Text style={styles.buttonText}>Sign In</Text>
+          <Text style={styles.buttonText}>Sign Up</Text>
         </TouchableOpacity>
-        <Link href="/register" asChild>
-          <TouchableOpacity style={styles.outlineButton}>
-            <Text style={styles.outlineButtonText}>Register</Text>
-          </TouchableOpacity>
-        </Link>
-        <Link href="/privacy" asChild>
-          <TouchableOpacity style={styles.privacy}>
-            <Text style={styles.privacyText}>Privacy Policy</Text>
-          </TouchableOpacity>
-        </Link>
       </KeyboardAvoidingView>
 
       {loading && (
@@ -116,7 +133,9 @@ export default function Index() {
       )}
     </View>
   );
-}
+};
+
+export default Page;
 
 const styles = StyleSheet.create({
   container: {
@@ -124,18 +143,6 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: "center",
     backgroundColor: COLORS.background,
-  },
-  outlineButton: {
-    alignItems: "center",
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    padding: 12,
-  },
-  outlineButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
   },
   inputContainer: {
     marginVertical: 8,
@@ -150,7 +157,7 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   button: {
-    marginVertical: 20,
+    marginTop: 20,
     backgroundColor: COLORS.primary,
     padding: 12,
     borderRadius: 4,
@@ -175,13 +182,5 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  privacy: {
-    alignItems: "center",
-    paddingTop: 18,
-  },
-  privacyText: {
-    fontSize: 16,
-    color: "white",
   },
 });
